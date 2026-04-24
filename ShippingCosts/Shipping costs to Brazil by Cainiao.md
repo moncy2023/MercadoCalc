@@ -1,0 +1,20 @@
+---
+title: "Shipping costs to Brazil by Cainiao"
+source: "https://global-selling.mercadolibre.com/knowledge-hub/41814"
+author:
+published:
+created: 2026-04-23
+description:
+tags:
+  - "clippings"
+---
+The cost you pay for shipping products from China and Hong Kong to Brazil **depends on your product’s gross weight and whether its price is below or above the free shipping threshold of BRL 79** for Brazil.
+
+Please follow these shipping conditions for every order:
+
+- You can send up to 5 units per order.
+- Make sure you declare accurate weight and dimensions. Discrepancies may result in extra charges or account suspension. Check how to calculate a product’s gross weight [here](https://global-selling.mercadolibre.com/help/22213).
+
+**Here are the costs you’ll pay**:
+
+<table><colgroup><col> <col> <col></colgroup><tbody><tr><th rowspan="2"><p>Weight (kg)</p></th><th colspan="2">Shipping cost</th></tr><tr><th><p><strong>Listings</strong> <strong>above</strong></p><p><strong>BRL 79</strong></p></th><th><p><strong>Listings</strong> <strong>below</strong></p><p><strong>BRL 79</strong></p></th></tr><tr><td>0.0 - 0.1</td><td><p>USD 5.1</p></td><td><p>USD 1.7</p></td></tr><tr><td>0.1 - 0.2</td><td><p>USD 6.2</p></td><td><p>USD 2.4</p></td></tr><tr><td>0.2 - 0.3</td><td><p>USD 9.3</p></td><td><p>USD 2.9</p></td></tr><tr><td>0.3 - 0.4</td><td><p>USD 9.6</p></td><td><p>USD 4.1</p></td></tr><tr><td>0.4 - 0.5</td><td><p>USD 12.2</p></td><td><p>USD 4.7</p></td></tr><tr><td>0.5 - 0.6</td><td><p>USD 12.7</p></td><td><p>USD 6.8</p></td></tr><tr><td>0.6 - 0.7</td><td><p>USD 15.0</p></td><td><p>USD 9.0</p></td></tr><tr><td>0.7 - 0.8</td><td><p>USD 15.2</p></td><td><p>USD 10.0</p></td></tr><tr><td>0.8 - 0.9</td><td><p>USD 18.0</p></td><td><p>USD 12.0</p></td></tr><tr><td>0.9 - 1.0</td><td><p>USD 18.5</p></td><td><p>USD 16.0</p></td></tr><tr><td>1.0 - 1.5</td><td><p>USD 22.5</p></td><td><p>USD 22.5</p></td></tr><tr><td>1.5 - 2.0</td><td><p>USD 29.6</p></td><td><p>USD 29.6</p></td></tr><tr><td>2.0 - 2.5</td><td><p>USD 44.7</p></td><td><p>USD 44.7</p></td></tr><tr><td>2.5 - 3.0</td><td><p>USD 44.7</p></td><td><p>USD 44.7</p></td></tr><tr><td>3.0 - 3.5</td><td><p>USD 47.2</p></td><td><p>USD 47.2</p></td></tr><tr><td>3.5 - 4.0</td><td><p>USD 47.2</p></td><td><p>USD 47.2</p></td></tr><tr><td>4.0 - 4.5</td><td><p>USD 58.4</p></td><td><p>USD 58.4</p></td></tr><tr><td>4.5 - 5.0</td><td><p>USD 58.4</p></td><td><p>USD 58.4</p></td></tr><tr><td>5.0 - 5.5</td><td><p>USD 89.5</p></td><td><p>USD 89.5</p></td></tr><tr><td>5.5 - 6.0</td><td><p>USD 89.5</p></td><td><p>USD 89.5</p></td></tr><tr><td>6.0 - 6.5</td><td><p>USD 109.3</p></td><td><p>USD 109.3</p></td></tr><tr><td>6.5 - 7.0</td><td><p>USD 109.3</p></td><td><p>USD 109.3</p></td></tr><tr><td>7.0 - 7.5</td><td><p>USD 124.3</p></td><td><p>USD 124.3</p></td></tr><tr><td>7.5 - 8.0</td><td><p>USD 124.3</p></td><td><p>USD 124.3</p></td></tr><tr><td>8.0 - 8.5</td><td><p>USD 130</p></td><td><p>USD 130</p></td></tr><tr><td>8.5 - 9.0</td><td><p>USD 130</p></td><td><p>USD 130</p></td></tr><tr><td>9.0 - 9.5</td><td><p>USD 135</p></td><td><p>USD 135</p></td></tr><tr><td>9.5 - 10.0</td><td><p>USD 135</p></td><td><p>USD 135</p></td></tr><tr><td>10.0 - 10.5</td><td><p>USD 140</p></td><td><p>USD 140</p></td></tr><tr><td>10.5 - 11.0</td><td><p>USD 140</p></td><td><p>USD 140</p></td></tr><tr><td>11.0 - 11.5</td><td><p>USD 148</p></td><td><p>USD 148</p></td></tr><tr><td>11.5 - 12.0</td><td><p>USD 148</p></td><td><p>USD 148</p></td></tr><tr><td>12.0 - 12.5</td><td><p>USD 160</p></td><td><p>USD 160</p></td></tr><tr><td>12.5 - 13.0</td><td><p>USD 160</p></td><td><p>USD 160</p></td></tr><tr><td>13.0 - 13.5</td><td><p>USD 160</p></td><td><p>USD 160</p></td></tr><tr><td>14.0 - 14.5</td><td><p>USD 172</p></td><td><p>USD 172</p></td></tr><tr><td>14.0 - 15.0</td><td><p>USD 172</p></td><td><p>USD 172</p></td></tr><tr><td>15.0 and beyond</td><td><p>USD 184</p></td><td><p>USD 184</p></td></tr></tbody></table>

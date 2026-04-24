@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  mercadocalc:
+    build: .
+    container_name: mercadocalc_app
+    ports:
+      - "9001:9001"
+    volumes:
+      # 挂载配置和数据库文件，防止容器重启后数据丢失
+      - ./config.json:/app/config.json
+      - ./shipping_fees.db:/app/shipping_fees.db
+    restart: unless-stopped

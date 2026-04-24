@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>美客多利润核算系统</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #34495e;
+        }
+
+        input[type="number"],
+        input[type="text"],
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        input[type="checkbox"] {
+            transform: scale(1.5);
+            margin-left: 5px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+        }
+
+        .checkbox-group label {
+            margin-bottom: 0;
+            margin-left: 10px;
+        }
+
+        button {
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #ecf0f1;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .result h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+
+        .result p {
+            font-size: 16px;
+            line-height: 1.5;
+            margin: 5px 0;
+        }
+
+        .mode-toggle {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .mode-toggle label {
+            margin: 0 15px;
+            cursor: pointer;
+        }
+
+        .threshold-note {
+            margin-top: 8px;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .threshold-note.auto-below {
+            background: linear-gradient(135deg, #d4efdf, #a9dfbf);
+            border: 2px solid #27ae60;
+            color: #1e8449;
+        }
+
+        .threshold-note.auto-above {
+            background: linear-gradient(135deg, #fdebd0, #f5cba7);
+            border: 2px solid #e67e22;
+            color: #935116;
+        }
+
+        .threshold-note.auto-conflict {
+            background: linear-gradient(135deg, #fadbd8, #f1948a);
+            border: 2px solid #e74c3c;
+            color: #922b21;
+        }
+
+        .threshold-badge {
+            display: inline-block;
+            margin-left: 10px;
+            padding: 4px 12px;
+            background: linear-gradient(135deg, #ffecd2, #fcb69f);
+            border: 2px solid #e17055;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: bold;
+            color: #2d3436;
+        }
+
+        .auto-label {
+            display: inline-block;
+            margin-left: 8px;
+            padding: 2px 8px;
+            background: #27ae60;
+            color: #fff;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>美客多利润核算系统</h1>
+        <div style="text-align: center; margin-bottom: 15px;"><a href="/shipping"
+                style="color: #3498db; text-decoration: none; font-size: 14px;">📦 查看各国运费标准 →</a></div>
+
+        <div class="mode-toggle">
+            <label><input type="radio" name="calc_mode" value="1" {{ 'checked' if config.get('calculation_mode', 1)==1
+                    else '' }} onchange="toggleMode()"> 计算保本售价 (无利润)</label>
+            <label><input type="radio" name="calc_mode" value="2" {{ 'checked' if config.get('calculation_mode', 1)==2
+                    else '' }} onchange="toggleMode()"> 计算利润 (已知平台售价)</label>
+        </div>
+
+        <form id="calcForm" onsubmit="calculate(event)">
+            <div class="form-group">
+                <label>采购成本 (含国内物流, ¥)</label>
+                <input type="number" step="0.01" id="procurement_cost"
+                    value="{{ config.get('procurement_cost', 50.0) }}" required>
+            </div>
+
+            <div class="form-group">
+                <label>抽佣比例 (%)</label>
+                <input type="number" step="0.1" id="commission_rate"
+                    value="{{ (config.get('commission_rate', 0.15) * 100) | round(2) }}" required>
+            </div>
+
+            <div class="form-group">
+                <label>打包费 (¥) <small style="color: #7f8c8d; font-weight: normal;">默认 2 RMB</small></label>
+                <input type="number" step="0.01" id="packaging_fee" value="{{ config.get('packaging_fee', 2.0) }}"
+                    required>
+            </div>
+
+            <div class="form-group">
+                <label>折损率 (%)</label>
+                <input type="number" step="0.1" id="loss_rate"
+                    value="{{ (config.get('loss_rate', 0.02) * 100) | round(2) }}" required>
+            </div>
+
+
+            <div class="form-group">
+                <label>国家/地区</label>
+                <select id="country_for_shipping">
+                    <option value="Mexico">Mexico</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>汇率换算 (1 USD = ? RMB)</label>
+                <input type="number" step="0.01" id="exchange_rate_usd_to_rmb"
+                    value="{{ config.get('exchange_rate_usd_to_rmb', 7.2) }}">
+                <small style="color: #7f8c8d;">数据库中的运费为美元(USD)，将自动换算为人民币(RMB)</small>
+            </div>
+
+            <div class="form-group">
+                <label>
+                    阈值判断方式
+                    <span id="threshold_display" class="threshold-badge"></span>
+                </label>
+                <select id="threshold_mode" onchange="onThresholdModeChange()">
+                    <option value="auto" selected>🤖 自动判断（系统根据售价自动选择运费档位）</option>
+                    <option value="above">📌 手动：高于免邮阈值</option>
+                    <option value="below">📌 手动：低于免邮阈值</option>
+                </select>
+                <small style="color: #27ae60; font-weight: bold;">💡 自动模式下，系统会分别用两种运费计算，选取与售价自洽的结果</small>
+            </div>
+
+            <div class="form-group">
+                <label>商品重量 (g)</label>
+                <input type="number" step="0.01" id="weight_g" value="{{ config.get('weight_g', 1000.0) }}">
+            </div>
+
+
+
+            <div class="form-group" id="manual_fee_group">
+                <label>【总运费】预估（根据阈值模式实时计算）</label>
+                <input type="number" step="0.01" id="manual_final_shipping_fee" value="0.0" readonly
+                    style="background-color: #eaf2f8; font-weight: bold; color: #2c3e50;">
+                <small id="shipping_breakdown" style="color: #27ae60; font-weight: bold;"></small>
+                <div id="shipping_both_preview" style="margin-top: 6px; font-size: 13px; color: #555;"></div>
+            </div>
+
+            <div id="mode1_inputs" style="{{ 'display:none;' if config.get('calculation_mode', 1) == 2 else '' }}">
+                <!-- 纯计算保本售价，无需额外参数 -->
+            </div>
+
+            <div id="mode2_inputs" style="{{ '' if config.get('calculation_mode', 1) == 2 else 'display:none;' }}">
+                <div class="form-group"
+                    style="padding: 10px; background: #e8f4fd; border-radius: 4px; border: 1px dashed #3498db; margin-bottom: 10px;">
+                    <label>目标利润率 (%) <small style="color: #34495e;">输入后自动推算下面的平台售价</small></label>
+                    <input type="number" step="0.1" id="target_profit_percentage_mode2"
+                        value="{{ (config.get('target_profit_percentage', 0.20) * 100) | round(2) }}"
+                        placeholder="例如输入 20 表示 20%">
+                </div>
+
+                <div class="form-group"
+                    style="padding: 10px; background: #e8f4fd; border-radius: 4px; border: 1px dashed #3498db; margin-bottom: 10px;">
+                    <label style="color: #e74c3c;">Net proceeds (USD) <small
+                            style="color: #e74c3c;">输入净收入，自动反推售价（采购成本+目标毛利）</small></label>
+                    <input type="number" step="0.01" id="net_proceeds" style="font-weight: bold; color: #e74c3c;"
+                        placeholder="例如 10.5">
+                </div>
+
+                <div class="form-group">
+                    <label>平台售价 (USD) <small style="color: #7f8c8d; font-weight: normal;">输入美元售价，自动按汇率换算</small></label>
+                    <input type="number" step="0.01" id="platform_selling_price"
+                        value="{{ config.get('platform_selling_price', 15.0) }}">
+                </div>
+            </div>
+
+            <button type="submit">开始核算</button>
+        </form>
+
+        <div class="result" id="resultDiv">
+            <h3>核算结果</h3>
+            <div id="resultContent"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch('/api/countries');
+                if (response.ok) {
+                    const countries = await response.json();
+                    const select = document.getElementById('country_for_shipping');
+                    select.innerHTML = '';
+                    countries.forEach(country => {
+                        const option = document.createElement('option');
+                        option.value = country;
+                        option.textContent = country;
+                        if (country === '{{ config.get("country_for_shipping", "Brazil") }}') option.selected = true;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (err) {
+                console.error('Failed to load countries:', err);
+            }
+
+            // 绑定事件：当运费相关字段变化时，实时更新【总运费】
+            const shippingFields = [
+                'country_for_shipping', 'exchange_rate_usd_to_rmb',
+                'weight_g', 'threshold_mode'
+            ];
+            shippingFields.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('change', updateShippingPreview);
+                    el.addEventListener('input', updateShippingPreview);
+                }
+            });
+
+            // 国家切换时同步更新阈值显示
+            document.getElementById('country_for_shipping').addEventListener('change', updateThreshold);
+
+            // ── 所有输入字段变化时，自动触发核算（防抖 300ms）──
+            let _calcTimer = null;
+            function autoCalc() {
+                clearTimeout(_calcTimer);
+                _calcTimer = setTimeout(() => calculate(), 300);
+            }
+            const allInputIds = [
+                'procurement_cost', 'packaging_fee', 'commission_rate', 'loss_rate',
+                'country_for_shipping', 'exchange_rate_usd_to_rmb',
+                'weight_g', 'threshold_mode',
+                'platform_selling_price', 'target_profit_percentage_mode2'
+            ];
+            allInputIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('input', autoCalc);
+                    el.addEventListener('change', autoCalc);
+                }
+            });
+            // 模式切换也触发
+            document.querySelectorAll('input[name="calc_mode"]').forEach(r => r.addEventListener('change', autoCalc));
+
+            // 目标利润率颜色动态判断（与 config 中的默认值比较）
+            const configTargetProfit = {{ (config.get('target_profit_percentage', 0.20) * 100) | round(2) }};
+            function updateProfitColor() {
+                const el = document.getElementById('target_profit_percentage_mode2');
+                const val = parseFloat(el.value);
+                if (isNaN(val)) { el.style.color = ''; return; }
+                if (val < configTargetProfit) {
+                    el.style.color = '#e74c3c';
+                } else {
+                    el.style.color = '#27ae60';
+                }
+            }
+            const profitEl = document.getElementById('target_profit_percentage_mode2');
+            profitEl.addEventListener('input', updateProfitColor);
+            profitEl.addEventListener('change', updateProfitColor);
+            updateProfitColor();
+
+            // 当输入 Net Proceeds 时，自动反推平台售价
+            const netProceedsInput = document.getElementById('net_proceeds');
+            if (netProceedsInput) {
+                netProceedsInput.addEventListener('change', async () => {
+                    const np_val = parseFloat(netProceedsInput.value);
+                    if (isNaN(np_val)) return;
+
+                    const country = document.getElementById('country_for_shipping').value;
+                    const weight_g = parseFloat(document.getElementById('weight_g').value) || 0;
+                    const rate = parseFloat(document.getElementById('exchange_rate_usd_to_rmb').value) || 7.2;
+                    const commission_rate = parseFloat(document.getElementById('commission_rate').value) / 100.0;
+                    const thresholdMode = document.getElementById('threshold_mode').value;
+
+                    try {
+                        let final_sp = 0;
+                        if (thresholdMode === 'auto') {
+                            const paramsBelow = new URLSearchParams({ country, weight_g, is_above_threshold: false, exchange_rate: rate });
+                            const paramsAbove = new URLSearchParams({ country, weight_g, is_above_threshold: true, exchange_rate: rate });
+                            const [respBelow, respAbove, respMeta] = await Promise.all([
+                                fetch(`/api/preview_shipping?${paramsBelow}`),
+                                fetch(`/api/preview_shipping?${paramsAbove}`),
+                                fetch(`/api/country_metadata/${country}`)
+                            ]);
+                            const dataBelow = await respBelow.json();
+                            const dataAbove = await respAbove.json();
+                            const meta = await respMeta.json();
+                            const threshold_usd = meta.threshold_usd || 0;
+
+                            let sp_below = (np_val + dataBelow.db_fee_usd) / (1 - commission_rate);
+                            let sp_above = (np_val + dataAbove.db_fee_usd) / (1 - commission_rate);
+
+                            let valid_below = (sp_below < threshold_usd);
+                            let valid_above = (sp_above >= threshold_usd);
+
+                            if (valid_below && !valid_above) final_sp = sp_below;
+                            else if (valid_above && !valid_below) final_sp = sp_above;
+                            else if (valid_below && valid_above) final_sp = Math.max(sp_below, sp_above); // 取高的保守
+                            else final_sp = Math.max(sp_below, sp_above); // fallback
+                        } else {
+                            const params = new URLSearchParams({ country, weight_g, is_above_threshold: (thresholdMode === 'above'), exchange_rate: rate });
+                            const resp = await fetch(`/api/preview_shipping?${params}`);
+                            const data = await resp.json();
+                            final_sp = (np_val + data.db_fee_usd) / (1 - commission_rate);
+                        }
+
+                        const sellingPriceInput = document.getElementById('platform_selling_price');
+                        sellingPriceInput.value = final_sp.toFixed(2);
+                        sellingPriceInput.style.backgroundColor = '#f1c40f';
+                        setTimeout(() => sellingPriceInput.style.backgroundColor = '', 500);
+
+                        calculate();
+                    } catch (e) {
+                        console.error('反推售价失败:', e);
+                    }
+                });
+            }
+
+            // ===== 目标利润率变化时，自动反推平台售价 =====
+            const targetProfitInput = document.getElementById('target_profit_percentage_mode2');
+            if (targetProfitInput) {
+                targetProfitInput.addEventListener('change', async () => {
+                    const targetProfitStr = targetProfitInput.value.trim();
+                    if (!targetProfitStr) return;
+
+                    let targetProfit = parseFloat(targetProfitStr);
+                    if (isNaN(targetProfit)) return;
+                    targetProfit = targetProfit / 100.0;
+
+                    const thresholdMode = document.getElementById('threshold_mode').value;
+                    const isAuto = (thresholdMode === 'auto');
+
+                    const payload = {
+                        calculation_mode: 3,
+                        procurement_cost: parseFloat(document.getElementById('procurement_cost').value),
+                        commission_rate: parseFloat(document.getElementById('commission_rate').value) / 100.0,
+                        loss_rate: parseFloat(document.getElementById('loss_rate').value) / 100.0,
+                        target_profit_percentage: targetProfit,
+                        packaging_fee: parseFloat(document.getElementById('packaging_fee').value || 0),
+                        exchange_rate_usd_to_rmb: parseFloat(document.getElementById('exchange_rate_usd_to_rmb').value || 7.2),
+                        is_above_threshold: thresholdMode === 'above',
+                        auto_threshold: isAuto,
+                        manual_final_shipping_fee: isAuto ? 0 : parseFloat(document.getElementById('manual_final_shipping_fee').value || 0),
+                        country_for_shipping: document.getElementById('country_for_shipping').value,
+                        weight_g: parseFloat(document.getElementById('weight_g').value || 0)
+                    };
+
+                    try {
+                        const response = await fetch('/api/calculate', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        const result = await response.json();
+
+                        if (response.ok) {
+                            let finalSellingPriceUSD = result.selling_price_usd;
+
+                            if (result.alt_result) {
+                                finalSellingPriceUSD = Math.max(finalSellingPriceUSD, result.alt_result.selling_price_usd);
+                            }
+
+                            const sellingPriceInput = document.getElementById('platform_selling_price');
+                            sellingPriceInput.value = finalSellingPriceUSD.toFixed(2);
+                            sellingPriceInput.style.backgroundColor = '#f1c40f';
+                            setTimeout(() => sellingPriceInput.style.backgroundColor = '', 500);
+
+                            calculate();
+                        } else {
+                            alert('推算售价失败: ' + JSON.stringify(result));
+                        }
+                    } catch (e) {
+                        console.error('推算售价失败:', e);
+                    }
+                });
+            }
+
+            // 页面加载后立即计算一次
+            updateShippingPreview();
+            updateThreshold();
+            // 初始自动核算
+            setTimeout(() => calculate(), 500);
+        });
+
+        async function updateThreshold() {
+            const country = document.getElementById('country_for_shipping').value;
+            const display = document.getElementById('threshold_display');
+            try {
+                const resp = await fetch(`/api/country_metadata/${country}`);
+                if (resp.ok) {
+                    const meta = await resp.json();
+                    if (meta.local_currency && meta.local_currency !== 'N/A') {
+                        display.textContent = `🏷️ ${meta.local_currency} ${meta.threshold_local} ≈ USD ${meta.threshold_usd}`;
+                        display.style.display = 'inline-block';
+                    } else {
+                        display.textContent = '🏷️ 暂未设置';
+                        display.style.display = 'inline-block';
+                    }
+                }
+            } catch (e) {
+                display.style.display = 'none';
+            }
+        }
+
+        function onThresholdModeChange() {
+            updateShippingPreview();
+        }
+
+        async function updateShippingPreview() {
+            const country = document.getElementById('country_for_shipping').value;
+            const weight_g = parseFloat(document.getElementById('weight_g').value) || 0;
+            const rate = parseFloat(document.getElementById('exchange_rate_usd_to_rmb').value) || 7.2;
+            const thresholdMode = document.getElementById('threshold_mode').value;
+            const previewDiv = document.getElementById('shipping_both_preview');
+
+            if (thresholdMode === 'auto') {
+                // 自动模式：显示两种运费对比
+                try {
+                    const paramsBelow = new URLSearchParams({ country, weight_g, is_above_threshold: false, exchange_rate: rate });
+                    const paramsAbove = new URLSearchParams({ country, weight_g, is_above_threshold: true, exchange_rate: rate });
+
+                    const [respBelow, respAbove] = await Promise.all([
+                        fetch(`/api/preview_shipping?${paramsBelow}`),
+                        fetch(`/api/preview_shipping?${paramsAbove}`)
+                    ]);
+
+                    if (respBelow.ok && respAbove.ok) {
+                        const dataBelow = await respBelow.json();
+                        const dataAbove = await respAbove.json();
+
+                        document.getElementById('manual_final_shipping_fee').value = 0;
+                        document.getElementById('shipping_breakdown').textContent = '🤖 自动模式：提交计算后系统自动选择';
+                        previewDiv.innerHTML = `
+                            <span style="color: #27ae60;">✅ 低于阈值运费: USD ${dataBelow.db_fee_usd} × ${rate} = <b>¥${dataBelow.final_fee}</b></span><br>
+                            <span style="color: #e67e22;">✅ 高于阈值运费: USD ${dataAbove.db_fee_usd} × ${rate} = <b>¥${dataAbove.final_fee}</b></span>
+                        `;
+                    }
+                } catch (e) {
+                    console.error('运费预览失败:', e);
+                }
+            } else {
+                // 手动模式
+                const is_above = (thresholdMode === 'above');
+                previewDiv.innerHTML = '';
+                try {
+                    const params = new URLSearchParams({
+                        country, weight_g, is_above_threshold: is_above, exchange_rate: rate
+                    });
+                    const resp = await fetch(`/api/preview_shipping?${params}`);
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        document.getElementById('manual_final_shipping_fee').value = data.final_fee;
+                        document.getElementById('shipping_breakdown').textContent =
+                            `USD ${data.db_fee_usd} × ${rate} = ¥${data.final_fee}`;
+                    }
+                } catch (e) {
+                    console.error('运费预览失败:', e);
+                }
+            }
+        }
+
+        async function toggleMode() {
+            const mode = document.querySelector('input[name="calc_mode"]:checked').value;
+            if (mode === '1') {
+                document.getElementById('mode1_inputs').style.display = 'block';
+                document.getElementById('mode2_inputs').style.display = 'none';
+            } else {
+                document.getElementById('mode1_inputs').style.display = 'none';
+                document.getElementById('mode2_inputs').style.display = 'block';
+
+                // 切换到模式2时，目标利润率归零（对应保本售价）
+                document.getElementById('target_profit_percentage_mode2').value = '0';
+                updateProfitColor();
+
+                // 自动用保本售价填入平台售价
+                try {
+                    const thresholdMode = document.getElementById('threshold_mode').value;
+                    const isAuto = (thresholdMode === 'auto');
+                    const payload = {
+                        calculation_mode: 1,
+                        procurement_cost: parseFloat(document.getElementById('procurement_cost').value),
+                        commission_rate: parseFloat(document.getElementById('commission_rate').value) / 100.0,
+                        loss_rate: parseFloat(document.getElementById('loss_rate').value) / 100.0,
+                        target_profit_percentage: 0,
+                        packaging_fee: parseFloat(document.getElementById('packaging_fee').value || 0),
+                        exchange_rate_usd_to_rmb: parseFloat(document.getElementById('exchange_rate_usd_to_rmb').value || 7.2),
+                        is_above_threshold: thresholdMode === 'above',
+                        auto_threshold: isAuto,
+                        manual_final_shipping_fee: isAuto ? 0 : parseFloat(document.getElementById('manual_final_shipping_fee').value || 0),
+                        country_for_shipping: document.getElementById('country_for_shipping').value,
+                        weight_g: parseFloat(document.getElementById('weight_g').value || 0)
+                    };
+                    const resp = await fetch('/api/calculate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await resp.json();
+                    if (resp.ok) {
+                        const sellingPriceInput = document.getElementById('platform_selling_price');
+                        sellingPriceInput.value = result.selling_price_usd.toFixed(2);
+                        sellingPriceInput.style.backgroundColor = '#f1c40f';
+                        setTimeout(() => sellingPriceInput.style.backgroundColor = '', 500);
+                    }
+                } catch (e) {
+                    console.error('获取保本售价失败:', e);
+                }
+
+                // 用保本售价触发一次利润计算
+                calculate();
+            }
+        }
+
+        async function calculate(e) {
+            if (e) e.preventDefault();
+
+            const mode = parseInt(document.querySelector('input[name="calc_mode"]:checked').value);
+            const thresholdMode = document.getElementById('threshold_mode').value;
+            const isAuto = (thresholdMode === 'auto');
+
+            const data = {
+                calculation_mode: mode,
+                procurement_cost: parseFloat(document.getElementById('procurement_cost').value),
+                commission_rate: parseFloat(document.getElementById('commission_rate').value) / 100.0,
+                loss_rate: parseFloat(document.getElementById('loss_rate').value) / 100.0,
+                packaging_fee: parseFloat(document.getElementById('packaging_fee').value || 0),
+                exchange_rate_usd_to_rmb: parseFloat(document.getElementById('exchange_rate_usd_to_rmb').value || 7.2),
+                is_above_threshold: thresholdMode === 'above',
+                auto_threshold: isAuto,
+                manual_final_shipping_fee: isAuto ? 0 : parseFloat(document.getElementById('manual_final_shipping_fee').value || 0),
+                country_for_shipping: document.getElementById('country_for_shipping').value,
+                weight_g: parseFloat(document.getElementById('weight_g').value || 0),
+                platform_selling_price: parseFloat(document.getElementById('platform_selling_price').value || 0)
+            };
+
+            try {
+                const response = await fetch('/api/calculate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    const rate = parseFloat(document.getElementById('exchange_rate_usd_to_rmb').value) || 7.2;
+                    const sellingPriceUSD = result.selling_price_usd;
+
+                    // 更新 Net proceeds 输入框
+                    const netProceedsInput = document.getElementById('net_proceeds');
+                    if (netProceedsInput && document.activeElement !== netProceedsInput) {
+                        netProceedsInput.value = result.net_proceeds_usd;
+                    }
+
+                    // 阈值自动判断结果提示
+                    let thresholdHtml = '';
+                    if (result.threshold_note) {
+                        let noteClass = 'auto-above';
+                        if (result.threshold_auto === 'below') noteClass = 'auto-below';
+                        else if (result.threshold_auto === 'conflict') noteClass = 'auto-conflict';
+                        thresholdHtml = `<div class="threshold-note ${noteClass}">🔍 ${result.threshold_note}</div>`;
+                    }
+
+                    const aboveText = result.is_above_threshold ? '高于阈值 ↑' : '低于阈值 ↓';
+                    const aboveColor = result.is_above_threshold ? '#e67e22' : '#27ae60';
+
+                    let profitHtml = '';
+                    if (result.profit !== undefined) {
+                        profitHtml = `
+                        <p><strong>利润:</strong> $${result.profit_usd} <span style="color:#7f8c8d;font-size:13px;">(≈ ¥${result.profit})</span></p>
+                        <p><strong>利润率:</strong> ${(result.profit_percentage * 100).toFixed(2)}%</p>
+                        `;
+                    }
+                    if (result.target_profit_usd !== undefined) {
+                        profitHtml = `
+                        <p><strong>目标净利润:</strong> $${result.target_profit_usd} <span style="color:#7f8c8d;font-size:13px;">(≈ ¥${result.target_profit})</span></p>
+                        `;
+                    }
+
+                    const resHtml = `
+                        ${thresholdHtml}
+                        <p><strong>平台售价:</strong> $${sellingPriceUSD} USD <span style="color:#7f8c8d;font-size:13px;">(≈ ¥${result.selling_price})</span></p>
+                        <p><strong>运费档位:</strong> <span style="color:${aboveColor}; font-weight:bold;">${aboveText}</span></p>
+                        <hr style="border:none;border-top:1px dashed #ccc;margin:10px 0;">
+                        <p style="color:#7f8c8d;font-size:13px;">平台售价 = Net Proceeds + 平台佣金 + 物流费</p>
+                        <p><strong>Net Proceeds:</strong> $${result.net_proceeds_usd} <span style="color:#7f8c8d;font-size:13px;">(≈ ¥${result.net_proceeds})</span></p>
+                        <p style="padding-left:20px;color:#555;">├ 固定成本 (采购+打包): ¥${result.fixed_cost_rmb} <span style="color:#7f8c8d;font-size:13px;">($${result.fixed_cost_usd}，含打包费 ¥${result.packaging_fee})</span></p>
+                        <p style="padding-left:20px;color:#555;">├ 折损成本: $${result.loss_cost_usd} <span style="color:#7f8c8d;font-size:13px;">(≈ ¥${result.loss_cost})</span></p>
+                        <p style="padding-left:20px;color:#555;">└ ${result.target_profit_usd !== undefined ? '目标净利润: $' + result.target_profit_usd : '利润: $' + (result.profit_usd || 0)} <span style="color:#7f8c8d;font-size:13px;">(≈ ¥${result.target_profit !== undefined ? result.target_profit : result.profit})</span></p>
+                        <p><strong>平台佣金:</strong> $${result.commission_fee_usd} <span style="color:#7f8c8d;font-size:13px;">(≈ ¥${result.commission_fee})</span></p>
+                        <p><strong>物流费:</strong> $${result.shipping_fee_usd} <span style="color:#7f8c8d;font-size:13px;">(≈ ¥${result.shipping_fee_rmb})</span></p>
+                        ${profitHtml}
+                    `;
+                    document.getElementById('resultContent').innerHTML = resHtml;
+                    document.getElementById('resultDiv').style.display = 'block';
+                } else {
+                    alert('Error: ' + JSON.stringify(result));
+                }
+            } catch (err) {
+                alert('Request failed: ' + err.message);
+            }
+        }
+    </script>
+</body>
+
+</html>

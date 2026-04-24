@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>运费标准查看 - 美客多利润核算系统</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f7fa; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #2c3e50; }
+        .nav { text-align: center; margin-bottom: 20px; }
+        .nav a { color: #3498db; text-decoration: none; font-size: 14px; }
+        .nav a:hover { text-decoration: underline; }
+        .form-group { margin-bottom: 20px; display: flex; align-items: center; gap: 15px; }
+        label { font-weight: bold; color: #34495e; white-space: nowrap; }
+        select { padding: 10px; border: 1px solid #ccc; border-radius: 4px; min-width: 200px; }
+        button { background-color: #3498db; color: #fff; border: none; padding: 10px 25px; font-size: 15px; border-radius: 4px; cursor: pointer; transition: background 0.3s; }
+        button:hover { background-color: #2980b9; }
+        .result-area { margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { background-color: #2c3e50; color: #fff; padding: 12px 10px; text-align: center; font-size: 14px; }
+        td { padding: 10px; text-align: center; border-bottom: 1px solid #ecf0f1; font-size: 14px; }
+        tr:nth-child(even) { background-color: #f9fafb; }
+        tr:hover { background-color: #eaf2f8; }
+        .empty-msg { text-align: center; color: #95a5a6; padding: 40px 0; font-size: 16px; }
+        .country-title { text-align: center; color: #2c3e50; margin-top: 25px; font-size: 20px; }
+        .count-info { text-align: center; color: #7f8c8d; font-size: 13px; margin-bottom: 10px; }
+        .threshold-badge {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 10px 18px;
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            border: 2px solid #e17055;
+            border-radius: 8px;
+            color: #2d3436;
+            font-size: 15px;
+            font-weight: bold;
+        }
+        .threshold-badge .label { color: #636e72; font-weight: normal; font-size: 13px; }
+        .threshold-container { text-align: center; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📦 运费标准查看</h1>
+        <div class="nav"><a href="/">← 返回利润核算</a></div>
+
+        <div class="form-group">
+            <label>选择国家：</label>
+            <select id="countrySelect">
+                <option value="">-- 请选择 --</option>
+            </select>
+            <button onclick="loadRates()">查询运费</button>
+        </div>
+
+        <div id="thresholdArea"></div>
+        <div class="result-area" id="resultArea"></div>
+    </div>
+
+    <script>
+        // 页面加载时填充国家列表
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const resp = await fetch('/api/countries');
+                if (resp.ok) {
+                    const countries = await resp.json();
+                    const sel = document.getElementById('countrySelect');
+                    countries.forEach(c => {
+                        const opt = document.createElement('option');
+                        opt.value = c;
+                        opt.textContent = c;
+                        sel.appendChild(opt);
+                    });
+                }
+            } catch (e) {
+                console.error('加载国家列表失败', e);
+            }
+        });
+
+        async function loadRates() {
+            const country = document.getElementById('countrySelect').value;
+            const area = document.getElementById('resultArea');
+            const thresholdArea = document.getElementById('thresholdArea');
+
+            if (!country) {
+                thresholdArea.innerHTML = '';
+                area.innerHTML = '<p class="empty-msg">请先选择一个国家</p>';
+                return;
+            }
+
+            try {
+                // 并行请求运费数据和国家元数据
+                const [ratesResp, metaResp] = await Promise.all([
+                    fetch(`/api/shipping_rates/${country}`),
+                    fetch(`/api/country_metadata/${country}`)
+                ]);
+
+                // 处理阈值信息
+                if (metaResp.ok) {
+                    const meta = await metaResp.json();
+                    if (meta.local_currency && meta.local_currency !== 'N/A') {
+                        thresholdArea.innerHTML = `
+                            <div class="threshold-container">
+                                <div class="threshold-badge">
+                                    <span class="label">🏷️ 免邮阈值：</span>
+                                    ${meta.local_currency} ${meta.threshold_local}
+                                    <span class="label">  ≈  </span>
+                                    USD ${meta.threshold_usd}
+                                </div>
+                            </div>`;
+                    } else {
+                        thresholdArea.innerHTML = '<div class="threshold-container"><div class="threshold-badge"><span class="label">🏷️ 免邮阈值：</span>暂未设置</div></div>';
+                    }
+                } else {
+                    thresholdArea.innerHTML = '';
+                }
+
+                // 处理运费表格
+                if (!ratesResp.ok) {
+                    area.innerHTML = '<p class="empty-msg">查询失败，请重试</p>';
+                    return;
+                }
+                const rates = await ratesResp.json();
+
+                if (!rates || rates.length === 0) {
+                    area.innerHTML = `<p class="empty-msg">国家 "${country}" 暂无运费数据</p>`;
+                    return;
+                }
+
+                let html = `<h3 class="country-title">${country} 运费标准（单位: USD）</h3>`;
+                html += `<p class="count-info">共 ${rates.length} 条记录</p>`;
+                html += `<table>
+                    <thead>
+                        <tr>
+                            <th>序号</th>
+                            <th>重量下限 (kg)</th>
+                            <th>重量上限 (kg)</th>
+                            <th>低于免邮阈值运费</th>
+                            <th>高于免邮阈值运费</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+
+                rates.forEach((r, i) => {
+                    html += `<tr>
+                        <td>${i + 1}</td>
+                        <td>${r.weight_min}</td>
+                        <td>${r.weight_max >= 999 ? '15.0+' : r.weight_max}</td>
+                        <td>USD ${r.fee_below}</td>
+                        <td>USD ${r.fee_above}</td>
+                    </tr>`;
+                });
+
+                html += '</tbody></table>';
+                area.innerHTML = html;
+
+            } catch (e) {
+                area.innerHTML = '<p class="empty-msg">请求出错: ' + e.message + '</p>';
+            }
+        }
+    </script>
+</body>
+</html>
